@@ -1,3 +1,5 @@
+import edu.princeton.cs.algs4.StdOut;
+import edu.princeton.cs.algs4.StdRandom;
 import edu.princeton.cs.algs4.StdStats;
 
 public class PercolationStats {
@@ -13,6 +15,11 @@ public class PercolationStats {
         percolationData = new double[trials];
         for (int x = 0; x < trials; x++) {
             Percolation test = new Percolation(n);
+            while (!test.percolates()){
+                int aRandomNumber = StdRandom.uniformInt(n)+1;
+                int anotherRandomNumber = StdRandom.uniformInt(n)+1;
+                test.open(aRandomNumber, anotherRandomNumber);
+            }
             percolationData[x] = (double) test.numberOfOpenSites() / (n * n);
         }
     }

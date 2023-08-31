@@ -119,6 +119,22 @@ public class Percolation {
             return false;
         }
         if (idArray.find(topElementIndex) == idArray.find(objectID)) {
+            if (row==gridSize){
+                try {
+                    return isFull(row-1, col);
+                } catch (IllegalArgumentException e) {
+
+                }try {
+                    return isFull(row, col-1);
+                } catch (IllegalArgumentException e) {
+
+                }try {
+                    return isFull(row-1, col+1);
+                } catch (IllegalArgumentException e) {
+
+                }
+
+            }
             return true;
         }
         return false;
@@ -129,7 +145,6 @@ public class Percolation {
         return this.openSites;
     }
 
-    // REWRITE IS IN ORDER!
     public boolean percolates() {
         // Check if the top & bottom pseudoelement connect
         return idArray.find(gridSize * gridSize) == idArray.find((gridSize * gridSize) + 1);
@@ -138,10 +153,11 @@ public class Percolation {
     // test client (optional)
     public static void main(String[] args) {
         Percolation perc = new Percolation(3);
-        perc.open(1, 3);
-        perc.open(2, 3);
-        perc.open(3, 3);
-        perc.open(3, 1);
-        System.out.println(perc.isFull(3,2));
+        perc.open(1,3);
+        perc.open(2,3);
+        perc.open(3,3);
+        perc.open(3,1);
+        perc.open(2,1);
+        System.out.println(perc.isFull(3,1));
     }
 }
