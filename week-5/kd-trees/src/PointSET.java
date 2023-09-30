@@ -17,7 +17,6 @@ public class PointSET {
         return pointSet.isEmpty();
     }
 
-    ;
 
     public int size() {
         return pointSet.size();
@@ -44,6 +43,9 @@ public class PointSET {
 
     // all points that are inside the rectangle (or on the boundary)
     public Iterable<Point2D> range(RectHV rect) {
+        if (rect == null) {
+            throw new IllegalArgumentException();
+        }
         ArrayList<Point2D> points = new ArrayList<>();
         for (Point2D pt : pointSet) {
             if (rect.contains(pt)) {
@@ -61,9 +63,9 @@ public class PointSET {
         Point2D champ = null;
         double champDistance = Double.POSITIVE_INFINITY;
         for (Point2D pt : pointSet) {
-            double x_diff = p.x() - pt.x();
-            double y_diff = p.y() - pt.y();
-            double distance = Math.sqrt(x_diff * x_diff + y_diff * y_diff);
+            double xDiff = p.x() - pt.x();
+            double yDiff = p.y() - pt.y();
+            double distance = Math.sqrt(xDiff * xDiff + yDiff * yDiff);
             if (distance < champDistance) {
                 champDistance = distance;
                 champ = pt;
