@@ -1,0 +1,5 @@
+0,chicken rice
+1,chicken
+2,animal
+3,cow
+4,quarterpounder
