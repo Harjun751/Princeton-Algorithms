@@ -4,7 +4,6 @@ import edu.princeton.cs.algs4.IndexMinPQ;
 import edu.princeton.cs.algs4.Picture;
 import edu.princeton.cs.algs4.Stack;
 
-import java.util.Arrays;
 
 public class SeamCarver {
     private int width;
@@ -13,7 +12,6 @@ public class SeamCarver {
     // pixel representation of the image
     private int[][] pixels;
 
-    private Double[][] energies;
 
 
     // create a seam carver object based on the given picture
@@ -23,13 +21,12 @@ public class SeamCarver {
         }
         // make a copy of the picture object
         Picture pic = new Picture(picture);
-        this.width = pic.width();   // 3
-        this.height = pic.height(); // 7 ; 3 x 7 pic
-        this.energies = new Double[height][width];
+        this.width = pic.width();
+        this.height = pic.height();
 
-        this.pixels = new int[height][width];
         // create a 2d int array of RGB int-encoded pixels
-        // y represents which row
+        // reminder: y is for row, while x is for col.
+        this.pixels = new int[height][width];
         for (int y = 0; y < this.height; y++) {
             // x represents which column
             for (int x = 0; x < this.width; x++) {
@@ -38,9 +35,16 @@ public class SeamCarver {
         }
     }
 
-    // current picture
     public Picture picture() {
-        return setPic();
+        // Populate a new Picture object
+        // pixel-by-pixel using the array.
+        Picture pic = new Picture(width, height);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                pic.setRGB(x, y, pixels[y][x]);
+            }
+        }
+        return pic;
     }
 
     // width of current picture
@@ -58,10 +62,7 @@ public class SeamCarver {
         if (x < 0 || y < 0 || x > width - 1 || y > height - 1) {
             throw new IllegalArgumentException();
         }
-        if (energies[y][x] == null) {
-            energies[y][x] = this.calcEnergy(x, y);
-        }
-        return energies[y][x];
+        return this.calcEnergy(x, y);
     }
 
     // sequence of indices for horizontal seam
@@ -84,16 +85,25 @@ public class SeamCarver {
 
         private DijkstraSP(boolean vertical) {
             this.vertical = vertical;
+            // init arrays with width*height+2
+            // the +2 are the PSEUDO top & bottom elements
+            // the pseudo-elements allow us to find the best path
+            // from top to bottom in one go.
             pathTo = new Integer[width * height + 2];
             distTo = new Double[width * height + 2];
-            minPQ = new IndexMinPQ<Double>(width * height + 2);
+            minPQ = new IndexMinPQ<>(width * height + 2);
 
+            // initialize the distTo arr with the max double value
             for (int v = 0; v < width * height + 2; v++)
                 distTo[v] = Double.POSITIVE_INFINITY;
+            // Set the distance for the top pseudo-element to be 0
             distTo[width * height] = 0.0;
 
+            // Start iterating through the minPQ array
+            // by firstly enqueuing the top pseudo-element
             minPQ.insert(width * height, 0.0);
             while (!minPQ.isEmpty()) {
+                // get the pixel with the lowest priority/energy
                 int v = minPQ.delMin();
                 for (int w : getAdjIndex(v))
                     relax(w, v);
@@ -102,19 +112,39 @@ public class SeamCarver {
 
         private void relax(int w, int v) {
             double wEnergy = getEnergy(w);
+            // the distance to w is the total combined energies
             if (distTo[w] > distTo[v] + wEnergy) {
-                // the distance to w is the total combined energies
+                // found a better path to w; update distance, path.
                 distTo[w] = distTo[v] + wEnergy;
+                // if the PQ contains W, the priority must be changed
+                // as the total energy of the path to W has just changed.
                 if (minPQ.contains(w)) {
                     minPQ.decreaseKey(w, distTo[w]);
                 } else {
+                    // else, add W for future processing
                     minPQ.insert(w, distTo[w]);
                 }
+                // Update the path to W to go thru V.
                 pathTo[w] = v;
             }
         }
 
+        private double getEnergy(int v) {
+            // convert 1D index
+            // to 2D (x, y) coordinates
+            // then obtain the energy of that pixel.
+            if (v == width * height + 1) {
+                return 0;
+            }
+            int rowY = v / width;
+            int colX = v % width;
+            return energy(colX, rowY);
+        }
+
         private Iterable<Integer> getAdjIndex(int index) {
+            // Obtains the adjacent indexes of the image.
+            // Behaviour for vertical and horizontal paths are different,
+            // so more specific methods are called.
             if (vertical) {
                 return getVerticalAdjIndex(index);
             } else {
@@ -125,28 +155,34 @@ public class SeamCarver {
         private Iterable<Integer> getHorizontalAdjIndex(int index) {
             Stack<Integer> adj = new Stack<>();
 
+            // if index is > width*height,
+            // the index item is the
+            // top pseudo-element
             if (index >= width * height) {
-                // top pseudo element
                 for (int i = 0; i < height; i++) {
+                    // add every top (horizontal) pixel to adjacent
                     adj.push(width * i);
                 }
                 return adj;
             }
 
+            // if the remainder of index/width is equal to width-1
+            // the index item is right BEFORE(ABOVE) the bottom pseudo-element
+            // pf. diy
+            if (index % width == width - 1) {
+                // add the bottom pseudo-element
+                adj.push(width * height + 1);
+                return adj;
+            }
+
+            // Obtain adjacent bottom elements.
             int bottomIndex = index + 1;
             int bottomLeftIndex = index - width + 1;
             int bottomRightIndex = index + width + 1;
 
-//            if (bottomIndex >= width * height) {
-            if (index % width == width - 1) {
-                // reached bottom row
-                adj.push(width * height + 1);
-                return adj;
-            } else {
-                adj.push(bottomIndex);
-            }
+            adj.push(bottomIndex);
 
-            // check if bottom left and right are valid vertexes
+            // check if bottom left and right are valid vertexes -> e.g. not corner
             if (bottomLeftIndex % width == index % width + 1 && bottomLeftIndex < width * height) {
                 adj.push(bottomLeftIndex);
             }
@@ -157,28 +193,33 @@ public class SeamCarver {
         }
 
         private Iterable<Integer> getVerticalAdjIndex(int index) {
-            Stack<Integer> adj = new Stack<Integer>();
+            Stack<Integer> adj = new Stack<>();
+
+            // if index is equal to width*height, it is the top
+            // pseudo-element
             if (index == width * height) {
-                // top pseudo element
+                // in this case, add every top pixel to the
+                // adjacent list
                 for (int i = 0; i < width; i++) {
                     adj.push(i);
                 }
                 return adj;
             }
+
             int bottomIndex = index + width;
             int bottomLeftIndex = index + width - 1;
             int bottomRightIndex = index + width + 1;
 
             if (bottomIndex >= width * height) {
-                // bottom pseudo element
+                // return the bottom pseudo-element
                 adj.push(width * height + 1);
                 return adj;
             } else {
                 adj.push(bottomIndex);
             }
-            int originalRow = index / width;
 
             // check if bottom left and right are valid vertexes
+            int originalRow = index / width;
             if (bottomLeftIndex / width == originalRow + 1) {
                 adj.push(bottomLeftIndex);
             }
@@ -188,16 +229,8 @@ public class SeamCarver {
             return adj;
         }
 
-        private double getEnergy(int v) {
-            if (v == width * height + 1) {
-                return 0;
-            }
-            int rowY = v / width;
-            int colX = v % width;
-            return energy(colX, rowY);
-        }
-
         public int[] bottomSP() {
+            // traverse the best path and return it.
             int[] SP;
             int i;
             if (vertical) {
@@ -210,15 +243,15 @@ public class SeamCarver {
 
             Integer path = width * height + 1;
             while (path != null) {
-                if (path >= width * height) {
-                    i--;
-                    path = pathTo[path];
-                    continue;
-                }
-                if (vertical) {
-                    SP[i] = path % width;
-                } else {
-                    SP[i] = path / width;
+                // if path is > width*height, it is the
+                // top/btm pseudo-elements. we don't want
+                // the pseudo-elements in the path array.
+                if (path < width * height) {
+                    if (vertical) {
+                        SP[i] = path % width;
+                    } else {
+                        SP[i] = path / width;
+                    }
                 }
                 i--;
                 path = pathTo[path];
@@ -226,7 +259,11 @@ public class SeamCarver {
             return SP;
         }
 
+        // hehe
         public double bottomEnergy() {
+            // get energy of the path
+            // by obtaining the energy of the bottom
+            // pseudo-element
             return distTo[width * height + 1];
         }
     }
@@ -239,23 +276,25 @@ public class SeamCarver {
         if (height == 1) {
             throw new IllegalArgumentException();
         }
+        // transpose the pixels
         pixels = transpose(pixels);
-        energies = transpose(energies);
-        int old = width;
+        int oldWidth = width;
         width = height;
-        height = old;
+        height = oldWidth;
 
+        // and call remove vertical seams
+        // this achieves the same outcome.
         removeVerticalSeam(seam);
 
+        // transpose the pixels back
         pixels = transpose(pixels);
-        energies = transpose(energies);
-        int nold = width;
-        width = height;
-        height = nold;
+        height = width;
+        width = oldWidth;
     }
 
     // remove vertical seam from current picture
     public void removeVerticalSeam(int[] seam) {
+        // do basic checks on seam object
         if (seam==null){
             throw new IllegalArgumentException();
         }
@@ -265,11 +304,14 @@ public class SeamCarver {
         if (width == 1) {
             throw new IllegalArgumentException();
         }
+
         int j = 0;
         int prevSeam = seam[0];
-        Stack<Integer[]> toRemove = new Stack<Integer[]>();
 
         for (int w : seam) {
+            // ensure that items in the seam don't differ
+            // by more than +-1 -> if it did, the pixels would
+            // be incongruous
             if (Math.abs(w - prevSeam) > 1 || w < 0) {
                 throw new IllegalArgumentException();
             }
@@ -277,30 +319,18 @@ public class SeamCarver {
                 throw new IllegalArgumentException();
             }
             prevSeam = w;
+
+            // Copy the pixels to a new array of -1 size
+            // Leave out the pixel at the seam when copying
             int[] newArr = new int[width - 1];
             System.arraycopy(pixels[j], 0, newArr, 0, w);
             System.arraycopy(pixels[j], w + 1, newArr, w, width - w - 1);
             pixels[j] = newArr;
-
-            // handling the energy array
-            Double[] newPixArr = new Double[width - 1];
-            System.arraycopy(energies[j], 0, newPixArr, 0, w);
-            System.arraycopy(energies[j], w + 1, newPixArr, w, width - w - 1);
-            energies[j] = newPixArr;
-            toRemove.push(new Integer[]{j, w});
-            toRemove.push(new Integer[]{j, w - 1});
             j++;
         }
 
+        // decrease the width
         width -= 1;
-        for (Integer[] coords : toRemove) {
-            int h = coords[0];
-            int k = coords[1];
-            if (h < 0 || h > height - 1 || k < 0 || k > width - 1) {
-                continue;
-            }
-            energies[h][k] = null;
-        }
     }
 
     private int[][] transpose(int[][] array) {
@@ -321,54 +351,29 @@ public class SeamCarver {
 
         return array_new;
     }
-    private Double[][] transpose(Double[][] array) {
-        // empty or unset array, nothing do to here
-        if (array == null || array.length == 0)
-            return array;
-
-        int width = array.length;
-        int height = array[0].length;
-
-        Double[][] array_new = new Double[height][width];
-
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                array_new[y][x] = array[x][y];
-            }
-        }
-
-        return array_new;
-    }
-
-    private Picture setPic() {
-        Picture pic = new Picture(width, height);
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                pic.setRGB(x, y, pixels[y][x]);
-            }
-        }
-        return pic;
-    }
 
     private double calcEnergy(int x, int y) {
-        // column x, row y
-        // border elements
+        // reminder: column x, row y
+        // Below checks elements on the BORDER of the picture
+        // energy for borders is max, 1000.
         if (x == 0 || x + 1 == width || y == 0 || y + 1 == height) {
             return 1000;
         }
 
+        // decode the rgb pixels
         int[] upperPixel = decodeRGB(this.pixels[y][x + 1]);
         int[] lowerPixel = decodeRGB(this.pixels[y][x - 1]);
         int[] leftPixel = decodeRGB(this.pixels[y - 1][x]);
         int[] rightPixel = decodeRGB(this.pixels[y + 1][x]);
 
 
-        // calculate proper energy
+        // calculate energy using formula
         double rX = rightPixel[0] - leftPixel[0];
-        double rY = lowerPixel[0] - upperPixel[0];
         double gX = rightPixel[1] - leftPixel[1];
-        double gY = lowerPixel[1] - upperPixel[1];
         double bX = rightPixel[2] - leftPixel[2];
+
+        double rY = lowerPixel[0] - upperPixel[0];
+        double gY = lowerPixel[1] - upperPixel[1];
         double bY = lowerPixel[2] - upperPixel[2];
 
         double xEnergy = rX * rX + gX * gX + bX * bX;
@@ -378,6 +383,7 @@ public class SeamCarver {
     }
 
     private int[] decodeRGB(int rgb) {
+        // decode the encoded RGB integers
         int r = (rgb >> 16) & 0xFF;
         int g = (rgb >> 8) & 0xFF;
         int b = (rgb) & 0xFF;
@@ -388,7 +394,9 @@ public class SeamCarver {
     //  unit testing (optional)
     public static void main(String[] args) {
         SeamCarver sc = new SeamCarver(new Picture("/home/arjun/Documents/prinston-algos/week-7/seams/inputs/6x5.png"));
-        int[] seam = new int[] { 1, 2, 1, 2, 1, 0 };
-        sc.removeHorizontalSeam(seam);
+        int seam[] = new int[] { 1, 2, 1, 2, 1};
+        sc.removeVerticalSeam(seam);
+        // 1d array allows not to calculate transposed matrix back and forth, because function which will convert 2d coordinates to 1d can calculate correct transposed offset:
+        sc.picture();
     }
 }
