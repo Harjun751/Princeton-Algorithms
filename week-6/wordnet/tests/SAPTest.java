@@ -2,6 +2,8 @@ import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.In;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /* *****************************************************************************
@@ -48,6 +50,24 @@ class SAPTest {
         int length = sapCopy.length(v, w);
         int ancestor = sapCopy.ancestor(v, w);
         sapCopy.length(w, v);
+
+        assertEquals(3, length);
+        assertEquals(1, ancestor);
+    }
+
+    @Test
+    void testDigraph1_cache_test2() {
+        In in = new In("inputs/digraph1.txt");
+        Digraph G = new Digraph(in);
+        SAP sapCopy = new SAP(G);
+        Integer[] v = new Integer[] { 5 };
+        Integer[] w = new Integer[] { 7 };
+
+        sapCopy.length(5, 7);
+        sapCopy.ancestor(5, 7);
+
+        int length = sapCopy.length(List.of(v), List.of(w));
+        int ancestor = sapCopy.ancestor(List.of(v), List.of(w));
 
         assertEquals(3, length);
         assertEquals(1, ancestor);

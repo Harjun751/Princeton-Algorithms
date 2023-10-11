@@ -27,7 +27,7 @@ public class SAP {
         else {
             ans = new ST<>();
         }
-        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w);
+        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w, cache);
         Integer[] answers = new Integer[] { search.getDistance(), search.getAncestor() };
         ST<Integer, Integer[]> alt = cache.get(w);
 
@@ -52,7 +52,7 @@ public class SAP {
         else {
             ans = new ST<>();
         }
-        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w);
+        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w, cache);
         Integer[] answers = new Integer[] { search.getDistance(), search.getAncestor() };
         ST<Integer, Integer[]> alt = cache.get(w);
 
@@ -68,13 +68,13 @@ public class SAP {
 
     // length of shortest ancestral path between any vertex in v and any vertex in w; -1 if no such path
     public int length(Iterable<Integer> v, Iterable<Integer> w) {
-        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w);
+        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w, cache);
         return search.getDistance();
     }
 
     // a common ancestor that participates in shortest ancestral path; -1 if no such path
     public int ancestor(Iterable<Integer> v, Iterable<Integer> w) {
-        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w);
+        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w, cache);
         return search.getAncestor();
     }
 
@@ -96,18 +96,24 @@ public class SAP {
 
         private int distance = Integer.MAX_VALUE;
 
+        private ST<Integer, ST<Integer, Integer[]>> cache;
 
-        public BreadthFirstSearch(Digraph g, int source, int goal) {
+
+        public BreadthFirstSearch(Digraph g, int source, int goal,
+                                  ST<Integer, ST<Integer, Integer[]>> cache) {
             Stack<Integer> sourceIter = new Stack<Integer>();
             Stack<Integer> goalIter = new Stack<Integer>();
             sourceIter.push(source);
             goalIter.push(goal);
+            this.cache = cache;
             // pass the call to BFS
             this.manager(g, sourceIter, goalIter);
         }
 
-        public BreadthFirstSearch(Digraph g, Iterable<Integer> source, Iterable<Integer> goal) {
+        public BreadthFirstSearch(Digraph g, Iterable<Integer> source, Iterable<Integer> goal,
+                                  ST<Integer, ST<Integer, Integer[]>> cache) {
             // pass the call to BFS
+            this.cache = cache;
             this.manager(g, source, goal);
         }
 
@@ -167,6 +173,17 @@ public class SAP {
                     // if reachable, add to search
                     goalSearch.enqueue(v);
                     goalMarked[v] = true;
+                    for (Integer x : srcSet) {
+                        // set cache
+                        ST<Integer, Integer[]> ans = cache.get(v);
+                        if (ans != null) {
+                            Integer[] answer = ans.get(x);
+                            if (answer != null) {
+                                this.distance = answer[0];
+                                this.ancestor = answer[1];
+                            }
+                        }
+                    }
                 }
                 goalCount += 1;
             }
