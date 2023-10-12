@@ -1,9 +1,6 @@
-
-
-import edu.princeton.cs.algs4.IndexMinPQ;
 import edu.princeton.cs.algs4.Picture;
+import edu.princeton.cs.algs4.Queue;
 import edu.princeton.cs.algs4.Stack;
-
 
 public class SeamCarver {
     private int width;
@@ -11,7 +8,6 @@ public class SeamCarver {
 
     // pixel representation of the image
     private int[][] pixels;
-
 
 
     // create a seam carver object based on the given picture
@@ -81,7 +77,8 @@ public class SeamCarver {
         Integer[] pathTo;
         Double[] distTo;
         boolean vertical;
-        IndexMinPQ<Double> minPQ;
+        Queue<Integer> minPQ;
+        boolean[] marked;
 
         private DijkstraSP(boolean vertical) {
             this.vertical = vertical;
@@ -91,7 +88,8 @@ public class SeamCarver {
             // from top to bottom in one go.
             pathTo = new Integer[width * height + 2];
             distTo = new Double[width * height + 2];
-            minPQ = new IndexMinPQ<>(width * height + 2);
+            marked = new boolean[width * height + 2];
+            minPQ = new Queue<>();
 
             // initialize the distTo arr with the max double value
             for (int v = 0; v < width * height + 2; v++)
@@ -101,10 +99,10 @@ public class SeamCarver {
 
             // Start iterating through the minPQ array
             // by firstly enqueuing the top pseudo-element
-            minPQ.insert(width * height, 0.0);
+            minPQ.enqueue(width * height);
             while (!minPQ.isEmpty()) {
                 // get the pixel with the lowest priority/energy
-                int v = minPQ.delMin();
+                int v = minPQ.dequeue();
                 for (int w : getAdjIndex(v))
                     relax(w, v);
             }
@@ -116,13 +114,9 @@ public class SeamCarver {
             if (distTo[w] > distTo[v] + wEnergy) {
                 // found a better path to w; update distance, path.
                 distTo[w] = distTo[v] + wEnergy;
-                // if the PQ contains W, the priority must be changed
-                // as the total energy of the path to W has just changed.
-                if (minPQ.contains(w)) {
-                    minPQ.decreaseKey(w, distTo[w]);
-                } else {
-                    // else, add W for future processing
-                    minPQ.insert(w, distTo[w]);
+                if (!marked[w]){
+                    minPQ.enqueue(w);
+                    marked[w] = true;
                 }
                 // Update the path to W to go thru V.
                 pathTo[w] = v;
@@ -276,20 +270,32 @@ public class SeamCarver {
         if (height == 1) {
             throw new IllegalArgumentException();
         }
-        // transpose the pixels
-        pixels = transpose(pixels);
-        int oldWidth = width;
-        width = height;
-        height = oldWidth;
+        if (seam.length!=width){
+            throw new IllegalArgumentException();
+        }
+        int prevSeam = seam[0];
+        for (int col = 0; col < seam.length; col++){
+            if (Math.abs(seam[col] - prevSeam) > 1 || seam[col] < 0) {
+                throw new IllegalArgumentException();
+            }
+            if (seam[col] >= height) {
+                throw new IllegalArgumentException();
+            }
+            prevSeam = seam[col];
 
-        // and call remove vertical seams
-        // this achieves the same outcome.
-        removeVerticalSeam(seam);
+            // foreach column of delete input
+            // find the row in which it resides
 
-        // transpose the pixels back
-        pixels = transpose(pixels);
-        height = width;
-        width = oldWidth;
+            // DONT SHIFT ARRAY
+            // SIMPLY COPY THE BOTTOM TO UP
+            int i = seam[col];
+            while (i < height - 1){
+                pixels[i][col] = pixels[i+1][col];
+                i++;
+            }
+        }
+        pixels[height-1] = null;
+        height-=1;
     }
 
     // remove vertical seam from current picture
@@ -304,7 +310,6 @@ public class SeamCarver {
         if (width == 1) {
             throw new IllegalArgumentException();
         }
-
         int j = 0;
         int prevSeam = seam[0];
 
@@ -315,7 +320,7 @@ public class SeamCarver {
             if (Math.abs(w - prevSeam) > 1 || w < 0) {
                 throw new IllegalArgumentException();
             }
-            if (w >= pixels[j].length) {
+            if (w >= width) {
                 throw new IllegalArgumentException();
             }
             prevSeam = w;
@@ -331,25 +336,6 @@ public class SeamCarver {
 
         // decrease the width
         width -= 1;
-    }
-
-    private int[][] transpose(int[][] array) {
-        // empty or unset array, nothing do to here
-        if (array == null || array.length == 0)
-            return array;
-
-        int width = array.length;
-        int height = array[0].length;
-
-        int[][] array_new = new int[height][width];
-
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                array_new[y][x] = array[x][y];
-            }
-        }
-
-        return array_new;
     }
 
     private double calcEnergy(int x, int y) {
@@ -394,8 +380,8 @@ public class SeamCarver {
     //  unit testing (optional)
     public static void main(String[] args) {
         SeamCarver sc = new SeamCarver(new Picture("/home/arjun/Documents/prinston-algos/week-7/seams/inputs/6x5.png"));
-        int seam[] = new int[] { 1, 2, 1, 2, 1};
-        sc.removeVerticalSeam(seam);
+        sc.removeVerticalSeam(new int[] { 3, 4, 5, 6, 5});
+        // sc.removeHorizontalSeam(sc.findHorizontalSeam());
         // 1d array allows not to calculate transposed matrix back and forth, because function which will convert 2d coordinates to 1d can calculate correct transposed offset:
         sc.picture();
     }
