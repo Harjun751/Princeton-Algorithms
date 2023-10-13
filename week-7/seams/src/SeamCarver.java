@@ -12,8 +12,8 @@ public class SeamCarver {
 
     // pixel representation of the image
     private int[] pixels;
+    private Double[] energies;
 
-    private boolean fixed;
 
 
     // create a seam carver object based on the given picture
@@ -27,7 +27,7 @@ public class SeamCarver {
         this.height = pic.height();
         this.trueH = height;
         this.trueW = width;
-        this.fixed = true;
+        this.energies = new Double[height * width];
 
         // create a 2d int array of RGB int-encoded pixels
         // reminder: y is for row, while x is for col.
@@ -91,7 +91,6 @@ public class SeamCarver {
         this.pixels = newArr;
         trueW = width;
         trueH = height;
-        fixed = true;
     }
 
     // width of current picture
@@ -109,10 +108,12 @@ public class SeamCarver {
         if (x < 0 || y < 0 || x > width - 1 || y > height - 1) {
             throw new IllegalArgumentException();
         }
-        if (!fixed){
-            fixArray();
-        }
         return calcEnergy(x, y);
+//        int v = getIndex(x, y);
+//        if (energies[v] == null){
+//            energies[v] = calcEnergy(x, y);
+//        }
+//        return this.energies[v];
     }
 
     // sequence of indices for horizontal seam
@@ -147,22 +148,35 @@ public class SeamCarver {
             }
             prevSeam = seam[col];
 
-            // foreach column of delete input
-            // find the row in which it resides
             int row = seam[col];
-            // get index of item, and shift the pixels
-            // below the v upwards
             int v = getIndex(col, row);
             int oldV = v;
-            while (v+trueW < trueH*trueW){
-                pixels[v] = pixels[v+trueW];
-                v+=trueW;
+
+            // set energy of the pixel directly
+            //  above the seam to null for re-calculation
+            if (getUpperIndex(v) > 0){
+                energies[getUpperIndex(v)] = null;
             }
-            // set last row to -1
+
+            // Shift the pixels below the seam upwards
+            // to cover the gap (the "gap" is made by overwriting the pixel)
+            // do the same with the energies
+            int lowerIndex = getLowerIndex(v);
+            while (lowerIndex < trueH*trueW){
+                pixels[v] = pixels[lowerIndex];
+                energies[v] = energies[lowerIndex];
+                v = lowerIndex;
+                lowerIndex = getLowerIndex(v);
+            }
+
+            // set the energy of the pixel (previously) directly
+            // beneath the seam to null for re-calculation
+            energies[oldV] = null;
+
+            // set last row to fill-in value
             pixels[v] = Integer.MAX_VALUE;
         }
         height-=1;
-        fixed = false;
     }
 
     // remove vertical seam from current picture
@@ -192,38 +206,53 @@ public class SeamCarver {
             }
             prevSeam = col;
 
-            // Copy the pixels to a new array of -1 size
-            // Leave out the pixel at the seam when copying
-
             int v = getIndex(col, row);
+            // get the "max" index of the current row
+            // i.e. the rightmost pixel in the row
             int max = (row+1) * trueW - 1;
+            int oldV = v;
+
+            // set the energy of the pixel to the left
+            // of the seam to 0
+            if (v-1 > 0){
+                energies[v-1] = null;
+            }
+
+            // While there are still pixels on the right,
+            // shift the pixels leftward to cover the gap
+            // do the same with energies
             while (v+1 <= max){
                 pixels[v] = pixels[v+1];
+                energies[v] = energies[v+1];
                 v++;
             }
-            // set rightmost row to -1
+
+            // set the energy of the pixel (previously) on
+            // the right of the seam to null for re-calculation
+            energies[oldV] = null;
+
+            // set the rightmost pixel to fill-in value
             pixels[v] = Integer.MAX_VALUE;
             row++;
         }
 
         // decrease the width
         width -= 1;
-        fixed = false;
     }
 
     private double calcEnergy(int x, int y) {
         // reminder: column x, row y
         // Below checks elements on the BORDER of the picture
         // energy for borders is max, 1000.
-        if (x == 0 || x + 1 == width || y == 0 || y + 1 == height) {
+        if (x == 0 || x == width-1 || y == 0 || y == height-1) {
             return 1000;
         }
 
         int v = getIndex(x, y);
 
         // decode the rgb pixels
-        int[] upperPixel = decodeRGB(this.pixels[v-width]);
-        int[] lowerPixel = decodeRGB(this.pixels[v+width]);
+        int[] upperPixel = decodeRGB(this.pixels[getUpperIndex(v)]);
+        int[] lowerPixel = decodeRGB(this.pixels[getLowerIndex(v)]);
         int[] leftPixel = decodeRGB(this.pixels[v-1]);
         int[] rightPixel = decodeRGB(this.pixels[v+1]);
 
@@ -260,6 +289,13 @@ public class SeamCarver {
 
     private int getIndex(int x, int y){
         return y*trueW + x;
+    }
+
+    private int getUpperIndex(int v){
+        return v - trueW;
+    }
+    private int getLowerIndex(int v){
+        return v + trueW;
     }
 
 
@@ -454,10 +490,9 @@ public class SeamCarver {
 
     //  unit testing (optional)
     public static void main(String[] args) {
-        SeamCarver sc = new SeamCarver(new Picture("/home/arjun/Documents/prinston-algos/week-7/seams/inputs/3x7.png"));
-        System.out.println(sc.energy(1,2));
-        sc.removeVerticalSeam(sc.findVerticalSeam());
-        sc.removeVerticalSeam(sc.findVerticalSeam());
+        SeamCarver sc = new SeamCarver(new Picture("/home/arjun/Documents/prinston-algos/week-7/seams/inputs/7x3.png"));
+        sc.removeVerticalSeam(new int[] {2, 2, 2});
+        System.out.println(sc.energy(2,0));
         // 1d array allows not to calculate transposed matrix back and forth, because function which will convert 2d coordinates to 1d can calculate correct transposed offset:
         sc.picture();
     }
