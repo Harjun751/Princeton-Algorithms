@@ -2,8 +2,6 @@ import edu.princeton.cs.algs4.Picture;
 import edu.princeton.cs.algs4.Queue;
 import edu.princeton.cs.algs4.Stack;
 
-import java.util.Arrays;
-
 public class SeamCarver {
     private int width;
     private int height;
@@ -12,7 +10,6 @@ public class SeamCarver {
 
     // pixel representation of the image
     private int[] pixels;
-    private Double[] energies;
 
 
 
@@ -27,9 +24,8 @@ public class SeamCarver {
         this.height = pic.height();
         this.trueH = height;
         this.trueW = width;
-        this.energies = new Double[height * width];
 
-        // create a 2d int array of RGB int-encoded pixels
+        // create a 1d int array of RGB int-encoded pixels
         // reminder: y is for row, while x is for col.
         this.pixels = new int[height * width];
         for (int y = 0; y < this.height; y++) {
@@ -46,8 +42,9 @@ public class SeamCarver {
         fixArray();
         Picture pic = new Picture(width, height);
         int v = 0;
+        int[] XY;
         while (v != width*height){
-            int[] XY = getXY(v);
+            XY = getXY(v);
             pic.setRGB(XY[0], XY[1], pixels[v]);
             v++;
         }
@@ -72,20 +69,16 @@ public class SeamCarver {
         int searchIndex = 0;
         while (searchIndex < pixels.length){
             if (pixels[searchIndex] != Integer.MAX_VALUE){
+                // if curr pixel is a valid number,
+                // add it to the new array.
                 newArr[newIndex] = pixels[searchIndex];
                 newIndex++;
                 searchIndex++;
             } else {
-                // while we haven't reached the end of the array
-                // and while search index is -1
-                while (searchIndex < pixels.length && pixels[searchIndex] == Integer.MAX_VALUE){
-                    searchIndex++;
-                }
-                if (searchIndex==pixels.length){
-                    break;
-                } else {
-                    newArr[newIndex] = pixels[searchIndex];
-                }
+                // go to the next line of the image
+                // 12 13 14 0
+                // 15 16 17 0
+                searchIndex+=(trueW-width);
             }
         }
         this.pixels = newArr;
@@ -109,11 +102,6 @@ public class SeamCarver {
             throw new IllegalArgumentException();
         }
         return calcEnergy(x, y);
-//        int v = getIndex(x, y);
-//        if (energies[v] == null){
-//            energies[v] = calcEnergy(x, y);
-//        }
-//        return this.energies[v];
     }
 
     // sequence of indices for horizontal seam
@@ -150,28 +138,15 @@ public class SeamCarver {
 
             int row = seam[col];
             int v = getIndex(col, row);
-            int oldV = v;
-
-            // set energy of the pixel directly
-            //  above the seam to null for re-calculation
-            if (getUpperIndex(v) > 0){
-                energies[getUpperIndex(v)] = null;
-            }
 
             // Shift the pixels below the seam upwards
             // to cover the gap (the "gap" is made by overwriting the pixel)
-            // do the same with the energies
             int lowerIndex = getLowerIndex(v);
             while (lowerIndex < trueH*trueW){
                 pixels[v] = pixels[lowerIndex];
-                energies[v] = energies[lowerIndex];
                 v = lowerIndex;
                 lowerIndex = getLowerIndex(v);
             }
-
-            // set the energy of the pixel (previously) directly
-            // beneath the seam to null for re-calculation
-            energies[oldV] = null;
 
             // set last row to fill-in value
             pixels[v] = Integer.MAX_VALUE;
@@ -210,26 +185,13 @@ public class SeamCarver {
             // get the "max" index of the current row
             // i.e. the rightmost pixel in the row
             int max = (row+1) * trueW - 1;
-            int oldV = v;
-
-            // set the energy of the pixel to the left
-            // of the seam to 0
-            if (v-1 > 0){
-                energies[v-1] = null;
-            }
 
             // While there are still pixels on the right,
             // shift the pixels leftward to cover the gap
-            // do the same with energies
             while (v+1 <= max){
                 pixels[v] = pixels[v+1];
-                energies[v] = energies[v+1];
                 v++;
             }
-
-            // set the energy of the pixel (previously) on
-            // the right of the seam to null for re-calculation
-            energies[oldV] = null;
 
             // set the rightmost pixel to fill-in value
             pixels[v] = Integer.MAX_VALUE;
@@ -294,6 +256,7 @@ public class SeamCarver {
     private int getUpperIndex(int v){
         return v - trueW;
     }
+
     private int getLowerIndex(int v){
         return v + trueW;
     }
@@ -303,7 +266,7 @@ public class SeamCarver {
         Integer[] pathTo;
         Double[] distTo;
         boolean vertical;
-        Queue<Integer> minPQ;
+        Queue<Integer> queue;
         boolean[] marked;
 
         private DijkstraSP(boolean vertical) {
@@ -315,20 +278,16 @@ public class SeamCarver {
             pathTo = new Integer[width * height + 2];
             distTo = new Double[width * height + 2];
             marked = new boolean[width * height + 2];
-            minPQ = new Queue<>();
+            queue = new Queue<>();
 
-            // initialize the distTo arr with the max double value
-            for (int v = 0; v < width * height + 2; v++)
-                distTo[v] = Double.POSITIVE_INFINITY;
             // Set the distance for the top pseudo-element to be 0
             distTo[width * height] = 0.0;
 
-            // Start iterating through the minPQ array
+            // Start iterating through the queue array
             // by firstly enqueuing the top pseudo-element
-            minPQ.enqueue(width * height);
-            while (!minPQ.isEmpty()) {
-                // get the pixel with the lowest priority/energy
-                int v = minPQ.dequeue();
+            queue.enqueue(width * height);
+            while (!queue.isEmpty()) {
+                int v = queue.dequeue();
                 for (int w : getAdjIndex(v))
                     relax(w, v);
             }
@@ -337,11 +296,11 @@ public class SeamCarver {
         private void relax(int w, int v) {
             double wEnergy = getEnergy(w);
             // the distance to w is the total combined energies
-            if (distTo[w] > distTo[v] + wEnergy) {
+            if (distTo[w]==null || distTo[w] > distTo[v] + wEnergy) {
                 // found a better path to w; update distance, path.
                 distTo[w] = distTo[v] + wEnergy;
                 if (!marked[w]){
-                    minPQ.enqueue(w);
+                    queue.enqueue(w);
                     marked[w] = true;
                 }
                 // Update the path to W to go thru V.
@@ -454,36 +413,28 @@ public class SeamCarver {
             int i;
             if (vertical) {
                 SP = new int[height];
-                i = height;
+                i = height-1;
             } else {
                 SP = new int[width];
-                i = width;
+                i = width-1;
             }
 
             Integer path = width * height + 1;
-            while (path != null) {
+            path = pathTo[path];
+            while (path!=width*height) {
                 // if path is > width*height, it is the
                 // top/btm pseudo-elements. we don't want
                 // the pseudo-elements in the path array.
-                if (path < width * height) {
-                    if (vertical) {
-                        SP[i] = path % width;
-                    } else {
-                        SP[i] = path / width;
-                    }
+                if (vertical) {
+                    SP[i] = path % width;
+                } else {
+                    SP[i] = path / width;
                 }
-                i--;
                 path = pathTo[path];
+
+                i--;
             }
             return SP;
-        }
-
-        // hehe
-        public double bottomEnergy() {
-            // get energy of the path
-            // by obtaining the energy of the bottom
-            // pseudo-element
-            return distTo[width * height + 1];
         }
     }
 
