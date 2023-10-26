@@ -1,0 +1,16 @@
+Writing this to just organise thoughts
+
+Why the DFA simulates the previous term:
+e.g. 
+Pattern: ABABAC
+
+If we reach the 5th state, we know some things about the text.
+Firstly, the text we have processed is ABABA. We are expeting a C to finish the state.
+
+If it's not a C, how do we know where to go in the DFA? We "Simulate"
+a back-up. If we back up now, the text will be "BABA", as we remove the first
+letter. Knowing BABA, we can use this text to find out which state this 
+process will end up at without truly backing up.
+
+So: simulation of next term prevents back up and is a natural continuation
+of the input stream
