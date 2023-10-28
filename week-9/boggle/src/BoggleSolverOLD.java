@@ -1,15 +1,17 @@
 import edu.princeton.cs.algs4.Bag;
 import edu.princeton.cs.algs4.SET;
-import edu.princeton.cs.algs4.TrieSET;
+import edu.princeton.cs.algs4.ST;
+
+import java.util.HashSet;
 
 // TODO: OPTIMIZATIONS
 //  Exploit that fact that when you perform a prefix query operation, it is usually almost identical to the previous prefix query, except that it is one letter longer.
-//  Consider a nonrecursive implementation of the prefix query operation.
-//  Precompute the Boggle graph, i.e., the set of cubes adjacent to each cube. But don't necessarily use a heavyweight Graph object.
+//  Check if hashset is the way to go?
 
 public class BoggleSolverOLD
 {
     private final Trie26 wordSet;
+    private ST<Integer, Bag<Integer>> adjacentList;
     // Initializes the data structure using the given array of strings as the dictionary.
     // (You can assume each word in the dictionary contains only the uppercase letters A through Z.)
     public BoggleSolverOLD(String[] dictionary){
@@ -19,23 +21,27 @@ public class BoggleSolverOLD
         // create a trie of valid words
         wordSet = new Trie26();
         for (String str : dictionary){
-            wordSet.put(str);
+            if (str.length()>2){
+                wordSet.put(str);
+            }
         }
     }
 
     // Returns the set of all valid words in the given Boggle board, as an Iterable.
     private BoggleBoard board;
-    private SET<String> validWords;
+    private HashSet<String> validWords;
     public Iterable<String> getAllValidWords(BoggleBoard board){
         if (board==null){
             throw new IllegalArgumentException();
         }
         this.board = board;
-        this.validWords = new SET<>();
+        this.validWords = new HashSet<>();
+        this.adjacentList = new ST<>();
+        precomputeBoggle();
 
         for (int i = 0; i < board.rows(); i++){
             for (int j = 0; j < board.cols(); j++) {
-                search(i, j, "", new SET<>());
+                search(i, j, "", new boolean[board.rows()][board.cols()]);
             }
         }
         return validWords;
@@ -52,44 +58,50 @@ public class BoggleSolverOLD
         return index;
     }
 
-    private Iterable<Integer> getAdj(int i, int j){
-        Bag<Integer> adjacent = new Bag<>();
-        // get adjacent items
-        // get upper item
-        if (i-1 >= 0){
-            adjacent.add(getFlatIndex(i-1, j));
-            // get diagonally upper-right item
-            if (j+1 < board.cols()){
-                adjacent.add(getFlatIndex(i-1, j+1));
-            }
-            // get diagonally upper-left item
-            if (j-1 >= 0){
-                adjacent.add(getFlatIndex(i-1, j-1));
-            }
-        }
+    private void precomputeBoggle(){
+        for (int i = 0; i < board.rows(); i++){
+            for (int j = 0; j < board.cols(); j++){
+                int index = getFlatIndex(i,j);
+                Bag<Integer> adjacent = new Bag<>();
+                // get adjacent items
+                // get upper item
+                if (i-1 >= 0){
+                    adjacent.add(getFlatIndex(i-1, j));
+                    // get diagonally upper-right item
+                    if (j+1 < board.cols()){
+                        adjacent.add(getFlatIndex(i-1, j+1));
+                    }
+                    // get diagonally upper-left item
+                    if (j-1 >= 0){
+                        adjacent.add(getFlatIndex(i-1, j-1));
+                    }
+                }
 
-        // get lower items
-        if (i+1 < board.rows()){
-            adjacent.add(getFlatIndex(i+1, j));
-            // get diagonally lower-right item
-            if (j+1 < board.cols()){
-                adjacent.add(getFlatIndex(i+1, j+1));
-            }
-            // get diagonally lower-left item
-            if (j-1 >= 0){
-                adjacent.add(getFlatIndex(i+1, j-1));
-            }
-        }
+                // get lower items
+                if (i+1 < board.rows()){
+                    adjacent.add(getFlatIndex(i+1, j));
+                    // get diagonally lower-right item
+                    if (j+1 < board.cols()){
+                        adjacent.add(getFlatIndex(i+1, j+1));
+                    }
+                    // get diagonally lower-left item
+                    if (j-1 >= 0){
+                        adjacent.add(getFlatIndex(i+1, j-1));
+                    }
+                }
 
-        // get item on left and right
-        if (j+1 < board.cols()){
-            adjacent.add(getFlatIndex(i, j+1));
+                // get item on left and right
+                if (j+1 < board.cols()){
+                    adjacent.add(getFlatIndex(i, j+1));
+                }
+                if (j-1 >= 0){
+                    adjacent.add(getFlatIndex(i, j-1));
+                }
+                adjacentList.put(index, adjacent);
+            }
         }
-        if (j-1 >= 0){
-            adjacent.add(getFlatIndex(i, j-1));
-        }
-        return adjacent;
     }
+
 
     private String getLetter(int i, int j){
         String letter = String.valueOf(board.getLetter(i, j));
@@ -99,13 +111,11 @@ public class BoggleSolverOLD
         return letter;
     }
 
-    private void search(int i, int j, String currWord, SET<Integer> visited){
-        visited.add(getFlatIndex(i, j));
+    private void search(int i, int j, String currWord, boolean[][] marked){
+        marked[i][j] = true;
         currWord += getLetter(i, j);
         if (wordSet.contains(currWord)){
-            if (currWord.length()>2){
-                validWords.add(currWord);
-            }
+            validWords.add(currWord);
         } else {
             // early termination: check if this is a prefix of any valid word
             if (!wordSet.prefixExists(currWord)){
@@ -114,11 +124,15 @@ public class BoggleSolverOLD
             }
         }
 
-        for (int adj : getAdj(i, j)){
-            if (!visited.contains(adj)){
-                int[] index = get2DIndex(adj);
+        for (int adj : adjacentList.get(getFlatIndex(i, j))){
+            int[] index = get2DIndex(adj);
+            if (!marked[index[0]][index[1]]){
                 // recurse down, cloning visited
-                search(index[0], index[1], currWord, new SET<>(visited));
+                search(index[0], index[1], currWord, marked);
+                // we reset setting the flag of the just-visited node to false
+                // so that the next adjacent node will be able to traverse properly
+                // this is slightly cheaper than creating a new visited object
+                marked[index[0]][index[1]] = false;
             }
         }
     }
@@ -153,6 +167,7 @@ public class BoggleSolverOLD
         private class Node{
             private Node[] next = new Node[R];
 
+            private boolean hasNext = false;
             private boolean isWord = false;
         }
 
@@ -169,6 +184,7 @@ public class BoggleSolverOLD
                 node.isWord = true;
                 return node;
             }
+            node.hasNext = true;
             char c = word.charAt(charIndex);
             // minus 65 to start 0-indexing
             c -= 65;
@@ -200,26 +216,10 @@ public class BoggleSolverOLD
         public boolean prefixExists(String word){
             // node x is the subtrie where word is a possible prefix
             Node x = get(root, word, 0);
-            return hasWord(x);
-
-        }
-
-        private boolean hasWord(Node x){
-            // Need to check this logic lol
             if (x==null){
                 return false;
             }
-            if (x.isWord){
-                return true;
-            }
-            // else -> continue searching node's subtries
-            for (char c = 0; c < R; c++){
-                boolean hit = hasWord(x.next[c]);
-                if (hit){
-                    return hit;
-                }
-            }
-            return false;
+            return x.hasNext;
         }
     }
 }
