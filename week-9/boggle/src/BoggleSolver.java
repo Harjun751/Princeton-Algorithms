@@ -35,7 +35,7 @@ public class BoggleSolver
 
         for (int i = 0; i < board.rows(); i++){
             for (int j = 0; j < board.cols(); j++) {
-                search(i, j, "", new SET<>());
+                search(i, j, "", new SET<>(), null);
             }
         }
         return validWords;
@@ -99,7 +99,7 @@ public class BoggleSolver
         return letter;
     }
 
-    private void search(int i, int j, String currWord, SET<Integer> visited){
+    private void search(int i, int j, String currWord, SET<Integer> visited, Trie26.Node node){
         visited.add(getFlatIndex(i, j));
         currWord += getLetter(i, j);
         if (wordSet.contains(currWord)){
@@ -108,7 +108,8 @@ public class BoggleSolver
             }
         } else {
             // early termination: check if this is a prefix of any valid word
-            if (!wordSet.prefixExists(currWord)){
+            node = wordSet.getNode(currWord, node);
+            if (node==null || !node.hasNext){
                 // we don't need to carry on - terminate
                 return;
             }
@@ -118,7 +119,7 @@ public class BoggleSolver
             if (!visited.contains(adj)){
                 int[] index = get2DIndex(adj);
                 // recurse down, cloning visited
-                search(index[0], index[1], currWord, new SET<>(visited));
+                search(index[0], index[1], currWord, new SET<>(visited), node);
             }
         }
     }
@@ -154,6 +155,8 @@ public class BoggleSolver
             private Node[] next = new Node[R];
 
             private boolean isWord = false;
+
+            private boolean hasNext = false;
         }
 
         private void put(String key){
@@ -169,6 +172,7 @@ public class BoggleSolver
                 node.isWord = true;
                 return node;
             }
+            node.hasNext = true;
             char c = word.charAt(charIndex);
             // minus 65 to start 0-indexing
             c -= 65;
@@ -197,29 +201,25 @@ public class BoggleSolver
             return get(node.next[c], word, charIndex+1);
         }
 
+        private Node prevNode;
+
         public boolean prefixExists(String word){
             // node x is the subtrie where word is a possible prefix
             Node x = get(root, word, 0);
-            return hasWord(x);
-
-        }
-
-        private boolean hasWord(Node x){
-            // Need to check this logic lol
             if (x==null){
                 return false;
             }
-            if (x.isWord){
-                return true;
+            return x.hasNext;
+        }
+
+        public Node getNode(String word, Node searchNode){
+            // node x is the subtrie where word is a possible prefix
+            if (searchNode==null){
+                searchNode = get(root, word, 0);
+            } else {
+                searchNode = get(searchNode, word, 0);
             }
-            // else -> continue searching node's subtries
-            for (char c = 0; c < R; c++){
-                boolean hit = hasWord(x.next[c]);
-                if (hit){
-                    return hit;
-                }
-            }
-            return false;
+            return searchNode;
         }
     }
 }

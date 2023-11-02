@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class CircularSuffixArrayTest {
     @Test
     void testPeriodicStringIndex(){
-        CircularSuffixArray csa = new CircularSuffixArray("*************");
-        System.out.println(csa.index(1));
+        CircularSuffixArray csa = new CircularSuffixArray("couscous");
+        for (int i = 0; i < "couscous".length(); i++){
+            System.out.println(csa.index(i));
+        }
     }
 
     @Test
