@@ -3,8 +3,6 @@ import edu.princeton.cs.algs4.BinaryStdOut;
 import edu.princeton.cs.algs4.ST;
 
 public class MoveToFront {
-//    private static BinaryStdIn stream;
-
     private static BiST<Character, Integer> letterSet;
 
     // extended ascii set
@@ -13,7 +11,6 @@ public class MoveToFront {
     // read character
     // print position
     // move character to front position
-    // TODO: Check why it outputs EOL (it works tho..)
     public static void encode() {
         while (!BinaryStdIn.isEmpty()) {
             // read character

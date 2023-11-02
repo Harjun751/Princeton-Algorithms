@@ -1,6 +1,8 @@
 import edu.princeton.cs.algs4.BinaryStdIn;
 import edu.princeton.cs.algs4.BinaryStdOut;
+import edu.princeton.cs.algs4.ST;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class BurrowsWheeler {
@@ -40,7 +42,6 @@ public class BurrowsWheeler {
         //      3b: if necessary, apply rule:
         //              If sorted row i and j both start with the same character and i < j, then next[i] < next[j].
         // now, using the next[], construct the text -> start at first, append first character of next[first] sequence and so on.
-
         // get first and target string from input
         int first = BinaryStdIn.readInt();
         String target = BinaryStdIn.readString();
@@ -52,39 +53,40 @@ public class BurrowsWheeler {
 
         // Step 2: create t[] -> string array where t[i] = sorted.index(i) + string.index(i)
         String t[] = new String[target.length()];
+        ST<Integer, String> searchQ = new ST<>();
         for (int i = 0; i < target.length(); i++) {
             t[i] = "" + sorted.charAt(i) + target.charAt(i);
+            searchQ.put(i,"" + target.charAt(i));
         }
 
         // Step 3: create next[] from first
         int[] next = new int[target.length()];
         boolean[] used = new boolean[target.length()];
         for (int x = 0; x < target.length(); x++) {
-            // get 0th index
+            // get first character of current string
             String firstChar = String.valueOf(t[x].charAt(0));
-//            BinaryStdOut.write(firstChar);
 
-            // calculate next
-            for (int i = 0; i < target.length(); i++) {
-                String lastChar = String.valueOf(t[i].charAt(1));
-                if (lastChar.equals(firstChar)) {
-                    if (!used[i]) {
-                        next[x] = i;
-                        used[i] = true;
-                        break;
-                    }
+            // problem:
+            // couscous prematurely picks first c before ending
+            // but the first c cannot be picked yet as it is the starting
+
+            // sequentially go through other iterations
+            for (Integer index : searchQ.keys()){
+                String lastChar = searchQ.get(index);
+                if (lastChar.equals(firstChar)){
+                    next[x] = index;
+                    break;
                 }
             }
+            searchQ.remove(next[x]);
         }
+
+        // iterate through next, stopping when a full loop is complete
         int curr = first;
-        while (true) {
+        for (int i = 0; i < target.length(); i++) {
             String firstChar = String.valueOf(t[curr].charAt(0));
             BinaryStdOut.write(firstChar);
             curr = next[curr];
-
-            if (curr == first) {
-                break;
-            }
         }
         BinaryStdOut.flush();
     }
