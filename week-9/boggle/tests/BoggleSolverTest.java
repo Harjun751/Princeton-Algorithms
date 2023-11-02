@@ -1,3 +1,4 @@
+import com.sun.source.tree.AssertTree;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.SET;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,20 @@ class BoggleSolverTest {
             System.out.println(str);
         }
     }
+    @Test
+    void testWeirdEdgeCase(){
+        In in = new In("inputs/dictionary-yawl.txt");
+        String[] dictionary = in.readAllStrings();
+        BoggleSolver solver = new BoggleSolver(dictionary);
+
+        BoggleBoard board = new BoggleBoard("inputs/wtf.txt");
+
+        SET<String> strSet = new SET<>();
+        for (String str : solver.getAllValidWords(board)){
+            strSet.add(str);
+        }
+        assertTrue(strSet.contains("BALEEN"));
+    }
 
     @Test
     void ABTest4x4Board(){
@@ -109,6 +124,21 @@ class BoggleSolverTest {
             strSet.remove(str);
         }
         assertTrue(strSet.isEmpty());
+    }
+    @Test
+    void testANTIDISES(){
+        In in = new In("inputs/dictionary-yawl.txt");
+        String[] dictionary = in.readAllStrings();
+
+        BoggleBoard board = new BoggleBoard("inputs/board-antidisestablishmentarianisms.txt");
+
+        SET<String> strSet = new SET<>();
+
+        BoggleSolver solver = new BoggleSolver(dictionary);
+        for (String str : solver.getAllValidWords(board)){
+            strSet.add(str);
+        }
+        assertTrue(strSet.contains("STABLISHMENT"));
     }
 
     @Test
