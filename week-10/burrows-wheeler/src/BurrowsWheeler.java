@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class BurrowsWheeler {
+    private int R = 256;
 
     // apply Burrows-Wheeler transform,
     // reading from standard input and writing to standard output
