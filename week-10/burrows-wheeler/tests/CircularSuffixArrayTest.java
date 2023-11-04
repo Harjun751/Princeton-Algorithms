@@ -10,6 +10,12 @@ class CircularSuffixArrayTest {
         for (int i = 0; i < "couscous".length(); i++){
             System.out.println(csa.index(i));
         }
+    } @Test
+    void testRandom(){
+        CircularSuffixArray csa = new CircularSuffixArray("BAB");
+        for (int i = 0; i < "BAB".length(); i++){
+            System.out.println(csa.index(i));
+        }
     }
 
     @Test
@@ -19,6 +25,16 @@ class CircularSuffixArrayTest {
         assertEquals(7, csa.index(2));
         assertEquals(5, csa.index(5));
         assertEquals(8, csa.index(6));
+    }
+    @Test
+    void testMismatch(){
+        CircularSuffixArray csa = new CircularSuffixArray("AABABBBBAB");
+        assertEquals(9, csa.index(4));
+    }
+    @Test
+    void testMismatch2(){
+        CircularSuffixArray csa = new CircularSuffixArray("BBBBBBABBAABBBABBBABABAABBAAAABBABBBBBBAABABBBBBAA");
+        assertEquals(32, csa.index(16));
     }
 
 }
