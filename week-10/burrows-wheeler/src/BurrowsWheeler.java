@@ -44,34 +44,12 @@ public class BurrowsWheeler {
         while (!BinaryStdIn.isEmpty()) {
             lastChars.add(BinaryStdIn.readChar());
         }
-        // sort the lastChars array to get the firstChars
-        char[] firstChars = keyIndexedCounting(lastChars);
 
-        // one pass attempt
+
+        // use key index counting on the last column
+        // to get the next array
         int[] next = new int[lastChars.size()];
-
-        // search STBag is populated during sorting
-        STBag indexed = new STBag();
-        for (int i = 0; i < firstChars.length; i++) {
-            char firstChar = firstChars[i];
-            char lastChar = lastChars.get(i);
-
-            boolean needIndex = true;
-
-            if (search.contains(lastChar)) {
-                int index = search.get(lastChar);
-                next[index] = i;
-                needIndex = false;
-            }
-            if (indexed.contains(firstChar)) {
-                int index = indexed.get(firstChar);
-                next[i] = index;
-            }
-            if (needIndex) {
-                indexed.add(lastChar, i);
-            }
-
-        }
+        char[] firstChars = keyIndexedCounting(lastChars, next);
 
         int curr = first;
         for (int i = 0; i < firstChars.length; i++) {
@@ -81,19 +59,19 @@ public class BurrowsWheeler {
         BinaryStdOut.flush();
     }
 
-    private static STBag search;
-
-    private static char[] keyIndexedCounting(ArrayList<Character> list) {
-//        got a hint that this may be useful for getting the next[] array. we can think about it
-        int N = list.size();
+    private static char[] keyIndexedCounting(ArrayList<Character> list, int[] next) {
         int r1 = 256;
+        char[] sorted = new char[list.size()];
         int[] count = new int[r1 + 1];
-        char[] sorted = new char[N];
-        search = new STBag();
+        STBag indexed = new STBag();
 
         // increment the count of character
+        int i = 0;
         for (Character indexedCharacter : list) {
             count[indexedCharacter + 1]++;
+            // index the positions of the last character column
+            indexed.add(indexedCharacter, i);
+            i++;
         }
 
         // create the cumulative index list
@@ -101,9 +79,14 @@ public class BurrowsWheeler {
             count[r + 1] += count[r];
         }
 
-        for (Character indexedCharacter : list) {
-            search.add(indexedCharacter, count[indexedCharacter]);
-            sorted[count[indexedCharacter]++] = indexedCharacter;
+        for (char c : list) {
+            // calculate the next[] by finding the
+            // first occurence of this character in
+            // the indexed last characters
+            // this character represents the first column
+            // count[c] represents where the character is in sorted order
+            next[count[c]] = indexed.get(c);
+            sorted[count[c]++] = c;
         }
         return sorted;
     }
@@ -125,17 +108,8 @@ public class BurrowsWheeler {
         }
 
         public int get(Character c) {
-            if (set.contains(c)) {
-                return set.get(c).dequeue();
-            }
-            return -1;
-        }
-
-        public boolean contains(Character c) {
-            if (set.contains(c)) {
-                return set.get(c).size() > 0;
-            }
-            return false;
+            // assume contains() is already called
+            return set.get(c).dequeue();
         }
     }
 
@@ -145,7 +119,10 @@ public class BurrowsWheeler {
         if (args[0].equals("-")) {
             transform();
         } else if (args[0].equals("+")) {
+            long start = System.nanoTime();
             inverseTransform();
+            long end = System.nanoTime();
+            System.out.printf("Elapsed time %.2f ms", (end-start)/1000000.0);
         } else {
             throw new IllegalArgumentException();
         }

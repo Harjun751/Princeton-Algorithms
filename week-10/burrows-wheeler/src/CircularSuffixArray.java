@@ -27,7 +27,8 @@ public class CircularSuffixArray {
     }
 
     private void sort(CircularSuffix[] a, CircularSuffix[] arr, int[] indexArr, int[] auxIndex, int lo, int hi, int d) {
-        if (hi <= lo) {
+        if (hi <= lo + 15) {
+            insertSort(a, indexArr, lo, hi, d);
             return;
         }
         // create a frequency list of characters that occur in the string
@@ -47,9 +48,6 @@ public class CircularSuffixArray {
             // then, insert item in said index.
             int x = count[a[i].charAt(d) + 1];
             arr[x] = a[i];
-            // what we're saying is that
-            // the index of the item just placed at x
-            // is i. which is correct for the first recursion.
             auxIndex[x] = indexArr[i];
             count[a[i].charAt(d) + 1]++;
         }
@@ -60,6 +58,31 @@ public class CircularSuffixArray {
         for (int r = 0; r < R; r++) {
             sort(a, arr, indexArr, auxIndex, lo + count[r], lo + count[r + 1] - 1, d + 1);
         }
+    }
+
+    private static void insertSort(CircularSuffix[] a, int[] indexes, int lo, int hi, int d){
+        for (int i = lo; i <= hi; i++){
+            for (int j = i; j>lo && less(a[j], a[j-1], d); j--){
+                exch(a, j, j-1);
+                int old = indexes[j];
+                indexes[j] = indexes[j-1];
+                indexes[j-1] = old;
+            }
+        }
+    }
+
+    private static void exch(Object[] a, int i, int j){
+        Object old = a[i];
+        a[i] = a[j];
+        a[j] = old;
+    }
+
+    private static boolean less(CircularSuffix v, CircularSuffix w, int d){
+        for (int i = d; i < v.original.length(); i++) {
+            if (v.charAt(i) < w.charAt(i)) return true;
+            if (v.charAt(i) > w.charAt(i)) return false;
+        }
+        return false;
     }
 
     // length of s
