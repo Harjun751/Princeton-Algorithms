@@ -15,8 +15,8 @@ My solutions and tests for the princeton algorithms course available on coursera
 ## Part 2
 | Week | Score|
 | ----------- | ----------- |
-| Week 1 | 99 |
-| Week 2 | 100 |
+| Week 1 | 101 |
+| Week 2 | 101 |
 | Week 3 | 100 |
 | Week 4 | 100 |
 | Week 5 | 100 |

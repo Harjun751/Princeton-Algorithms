@@ -8,6 +8,10 @@ import edu.princeton.cs.algs4.Stack;
 public class SAP {
     private Digraph graph;
 
+    // FORMAT OF THE CACHE
+    // Access using the integer index of the vertex in question
+    // then, the ST<Integer, Integer[]> stores, for that vertex,
+    // the ancestor and distance (Integer[]) for the QUERY VERTEX (Integer)
     private ST<Integer, ST<Integer, Integer[]>> cache;
 
     // constructor takes a digraph (not necessarily a DAG)
@@ -101,8 +105,8 @@ public class SAP {
 
         public BreadthFirstSearch(Digraph g, int source, int goal,
                                   ST<Integer, ST<Integer, Integer[]>> cache) {
-            Stack<Integer> sourceIter = new Stack<Integer>();
-            Stack<Integer> goalIter = new Stack<Integer>();
+            Stack<Integer> sourceIter = new Stack<>();
+            Stack<Integer> goalIter = new Stack<>();
             sourceIter.push(source);
             goalIter.push(goal);
             this.cache = cache;
@@ -121,7 +125,6 @@ public class SAP {
             if (source == null || goal == null) {
                 throw new IllegalArgumentException();
             }
-            Digraph graph = new Digraph(g);
 
             int[] sourceDistance = new int[g.V()];
             int[] goalDistance = new int[g.V()];

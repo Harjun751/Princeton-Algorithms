@@ -230,8 +230,12 @@ class SAPTest {
         SAP sapCopy = new SAP(G);
         int v = 1745;
         int w = 4090;
+
+        long start = System.nanoTime();
         int length = sapCopy.length(v, w);
         int ancestor = sapCopy.ancestor(v, w);
+        long end = System.nanoTime();
+        System.out.printf("Elapsed Time %.2f ms", (end - start) / 1000000.0);
 
         assertEquals(4, length);
         assertEquals(42539, ancestor);
