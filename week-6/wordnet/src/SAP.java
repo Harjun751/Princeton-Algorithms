@@ -8,77 +8,57 @@ import edu.princeton.cs.algs4.Stack;
 public class SAP {
     private Digraph graph;
 
-    // FORMAT OF THE CACHE
-    // Access using the integer index of the vertex in question
-    // then, the ST<Integer, Integer[]> stores, for that vertex,
-    // the ancestor and distance (Integer[]) for the QUERY VERTEX (Integer)
-    private ST<Integer, ST<Integer, Integer[]>> cache;
+    private Cache cache;
 
     // constructor takes a digraph (not necessarily a DAG)
     public SAP(Digraph G) {
         graph = new Digraph(G);
-        this.cache = new ST<>();
+        this.cache = new Cache();
     }
 
     // length of shortest ancestral path between v and w; -1 if no such path
     public int length(int v, int w) {
-        ST<Integer, Integer[]> ans = cache.get(v);
+        // attempt to get answer from cache
+        Integer ans = cache.getDistance(v, w);
         if (ans != null) {
-            if (ans.contains(w)) {
-                return ans.get(w)[0];
-            }
+            return ans;
         }
-        else {
-            ans = new ST<>();
-        }
-        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w, cache);
-        Integer[] answers = new Integer[] { search.getDistance(), search.getAncestor() };
-        ST<Integer, Integer[]> alt = cache.get(w);
 
-        if (alt == null) {
-            alt = new ST<>();
-        }
-        ans.put(w, answers);
-        alt.put(v, answers);
-        cache.put(v, ans);
-        cache.put(w, alt);
+        // if not, create BFS object
+        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w);
+
+        // insert item into cache
+        cache.insert(v, w, search.getDistance(), search.getAncestor());
+
         return search.getDistance();
     }
 
     // a common ancestor of v and w that participates in a shortest ancestral path; -1 if no such path
     public int ancestor(int v, int w) {
-        ST<Integer, Integer[]> ans = cache.get(v);
+        // attempt to get answer from cache
+        Integer ans = cache.getAncestor(v, w);
         if (ans != null) {
-            if (ans.contains(w)) {
-                return ans.get(w)[1];
-            }
+            return ans;
         }
-        else {
-            ans = new ST<>();
-        }
-        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w, cache);
-        Integer[] answers = new Integer[] { search.getDistance(), search.getAncestor() };
-        ST<Integer, Integer[]> alt = cache.get(w);
 
-        if (alt == null) {
-            alt = new ST<>();
-        }
-        ans.put(w, answers);
-        alt.put(v, answers);
-        cache.put(v, ans);
-        cache.put(w, alt);
+        // if not, create BFS object
+        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w);
+
+        // insert into cache
+        cache.insert(v, w, search.getDistance(), search.getAncestor());
+
         return search.getAncestor();
     }
 
     // length of shortest ancestral path between any vertex in v and any vertex in w; -1 if no such path
     public int length(Iterable<Integer> v, Iterable<Integer> w) {
-        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w, cache);
+        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w);
         return search.getDistance();
     }
 
     // a common ancestor that participates in shortest ancestral path; -1 if no such path
     public int ancestor(Iterable<Integer> v, Iterable<Integer> w) {
-        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w, cache);
+        BreadthFirstSearch search = new BreadthFirstSearch(graph, v, w);
         return search.getAncestor();
     }
 
@@ -91,7 +71,80 @@ public class SAP {
         v.enqueue(null);
         v.enqueue(-1);
         SAP sap = new SAP(G);
-        sap.ancestor(null, null);
+        // sap.ancestor(null, null);
+    }
+
+    private class Cache {
+        // CACHE DATA STRUCTURE
+        // Source Vertex : Integer : Entry
+        // Each vertex contains a symbol table of data concerning other vertexes
+        private ST<Integer, ST<Integer, Entry>> cache;
+
+        public Cache() {
+            this.cache = new ST<>();
+        }
+
+        public Integer getDistance(int sourceVertex, int queryVertex) {
+            ST<Integer, Entry> st = cache.get(sourceVertex);
+            if (st != null) {
+                Entry ent = st.get(queryVertex);
+                if (ent != null) {
+                    return ent.getDistance();
+                }
+            }
+            return null;
+        }
+
+        public Integer getAncestor(int sourceVertex, int queryVertex) {
+            ST<Integer, Entry> st = cache.get(sourceVertex);
+            if (st != null) {
+                Entry ent = st.get(queryVertex);
+                if (ent != null) {
+                    return ent.getAncestor();
+                }
+            }
+            return null;
+        }
+
+        public boolean contains(int sourceVertex, int queryVertex) {
+            return cache.get(sourceVertex).get(queryVertex) != null;
+        }
+
+        public void insert(int sourceVertex, int queryVertex, int distance, int ancestor) {
+            Entry ent = new Entry(distance, ancestor);
+
+            ST<Integer, Entry> sourceRecords = cache.get(sourceVertex);
+            if (sourceRecords == null) {
+                sourceRecords = new ST<>();
+                cache.put(sourceVertex, sourceRecords);
+            }
+            sourceRecords.put(queryVertex, ent);
+
+            ST<Integer, Entry> queryRecords = cache.get(queryVertex);
+            if (queryRecords == null) {
+                queryRecords = new ST<>();
+                cache.put(queryVertex, queryRecords);
+            }
+            queryRecords.put(sourceVertex, ent);
+        }
+
+        private class Entry {
+            private int ancestor;
+            private int distance;
+
+            public Entry(int distance, int ancestor) {
+                this.ancestor = ancestor;
+                this.distance = distance;
+            }
+
+            public int getAncestor() {
+                return ancestor;
+            }
+
+            public int getDistance() {
+                return distance;
+            }
+        }
     }
 
     private class BreadthFirstSearch {
@@ -100,24 +153,17 @@ public class SAP {
 
         private int distance = Integer.MAX_VALUE;
 
-        private ST<Integer, ST<Integer, Integer[]>> cache;
-
-
-        public BreadthFirstSearch(Digraph g, int source, int goal,
-                                  ST<Integer, ST<Integer, Integer[]>> cache) {
+        public BreadthFirstSearch(Digraph g, int source, int goal) {
             Stack<Integer> sourceIter = new Stack<>();
             Stack<Integer> goalIter = new Stack<>();
             sourceIter.push(source);
             goalIter.push(goal);
-            this.cache = cache;
             // pass the call to BFS
             this.manager(g, sourceIter, goalIter);
         }
 
-        public BreadthFirstSearch(Digraph g, Iterable<Integer> source, Iterable<Integer> goal,
-                                  ST<Integer, ST<Integer, Integer[]>> cache) {
+        public BreadthFirstSearch(Digraph g, Iterable<Integer> source, Iterable<Integer> goal) {
             // pass the call to BFS
-            this.cache = cache;
             this.manager(g, source, goal);
         }
 
@@ -140,6 +186,8 @@ public class SAP {
             int goalUnreachableCount = 0;
             int goalCount = 0;
 
+            // Preprocess: Check if vertexes are reachable
+            // if they are, add it to the source set
             for (Integer v : source) {
                 if (v == null || v < 0) {
                     throw new IllegalArgumentException();
@@ -155,7 +203,9 @@ public class SAP {
                 srcSet.add(v);
             }
 
-
+            // Same with goal
+            // check if they are reachable
+            // or if there are duplicates
             for (Integer v : goal) {
                 if (v == null || v < 0) {
                     throw new IllegalArgumentException();
@@ -176,15 +226,14 @@ public class SAP {
                     // if reachable, add to search
                     goalSearch.enqueue(v);
                     goalMarked[v] = true;
+                    // Check if there is a cached answer for this vertex
+                    // is this required...
                     for (Integer x : srcSet) {
-                        // set cache
-                        ST<Integer, Integer[]> ans = cache.get(v);
-                        if (ans != null) {
-                            Integer[] answer = ans.get(x);
-                            if (answer != null) {
-                                this.distance = answer[0];
-                                this.ancestor = answer[1];
-                            }
+                        Integer anc = cache.getAncestor(v, x);
+                        Integer dist = cache.getDistance(v, x);
+                        if (anc != null && dist != null) {
+                            this.ancestor = anc;
+                            this.distance = dist;
                         }
                     }
                 }
@@ -204,11 +253,15 @@ public class SAP {
             while (!goalSearch.isEmpty() || !sourceSearch.isEmpty()) {
                 if (!sourceSearch.isEmpty()) {
                     int sourceVertex = sourceSearch.dequeue();
+                    // check every adjacent vertex for traversable area
                     for (int neighbour : graph.adj(sourceVertex)) {
                         if (!sourceMarked[neighbour]) {
+                            // add it to the search, set distance
                             sourceSearch.enqueue(neighbour);
                             sourceMarked[neighbour] = true;
                             sourceDistance[neighbour] = sourceDistance[sourceVertex] + 1;
+
+                            // Early termination
                             if (sourceDistance[neighbour] > this.distance) {
                                 // current search branch is longer than shortest distance found so far
                                 // we don't need to search any further.
