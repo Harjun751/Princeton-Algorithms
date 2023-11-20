@@ -7,6 +7,10 @@ public class Percolation {
     private final WeightedQuickUnionUF idArray;
     private final int gridSize;
     private int openSites = 0;
+    private final int topElementIndex;
+    private final int bottomElementIndex;
+
+    private final int offset;
 
     private int convertGridToIDIndex(int row, int col) {
         return gridSize * (row - 1) + col - 1;
@@ -32,33 +36,23 @@ public class Percolation {
         // Create the original object array (n by n size)
         objectArray = new boolean[n][n];
         // Create the ID array for union find - includes a +2 for the top and bottom pseudoelements
-        idArray = new WeightedQuickUnionUF(n * n + 2);
+        // it also includes a "copy" of itself within it, without the bottom pseudo element
+        idArray = new WeightedQuickUnionUF(2 * n * n + 3);
         // Initialize the size of the grid
         gridSize = n;
-
-        // Create a row of booleans
-        // Representing if the node is "open" or "closed"
-        boolean[] row = new boolean[n];
-        for (int x = 0; x < n; x++) {
-            row[x] = false;
-        }
-        // Clone the rows to create the full grid
-        // Starting from the bottom index, 4, til 0
-        while (n > 0) {
-            n--;
-            objectArray[n] = row.clone();
-        }
+        offset = n*n+2;
 
         // Set up the top and bottom pseudo-elements
         // Create a psuedo top & bottom element that connects to all edge-level components
-        int topElementIndex = gridSize * gridSize;
-        int bottomElementIndex = gridSize * gridSize + 1;
+        topElementIndex = gridSize * gridSize;
+        bottomElementIndex = gridSize * gridSize + 1;
 
         // edge-level components = first N elements and last N elements
         // For loop occurs gridSize amount of times
         for (int x = 0; x < gridSize; x++) {
             // union the top-level element to the top psuedo element if it is open
             idArray.union(topElementIndex, x);
+            idArray.union(topElementIndex+offset, x+offset);
             // union the bottom-level element to the bottom pseudo element
             // Note: A little wonky but it's because the last index of a REAL
             // ID in the idArray is index N*N-1. It is then minused by whatever X is current, hence working backwards.
@@ -82,18 +76,22 @@ public class Percolation {
             // Union on above element if it is open
             if (row - 1 > 0 && this.getObject(row - 1, col)) {
                 idArray.union(currentElementIndex, convertGridToIDIndex(row - 1, col));
+                idArray.union(currentElementIndex+offset, convertGridToIDIndex(row - 1, col)+offset);
             }
             // Union on below element
             if (row + 1 <= gridSize && this.getObject(row + 1, col)) {
                 idArray.union(currentElementIndex, convertGridToIDIndex(row + 1, col));
+                idArray.union(currentElementIndex+offset, convertGridToIDIndex(row + 1, col)+offset);
             }
             // Union on left element
             if (col - 1 > 0 && this.getObject(row, col - 1)) {
                 idArray.union(currentElementIndex, convertGridToIDIndex(row, col - 1));
+                idArray.union(currentElementIndex+offset, convertGridToIDIndex(row, col - 1)+offset);
             }
             // Union on right element
             if (col + 1 <= gridSize && this.getObject(row, col + 1)) {
                 idArray.union(currentElementIndex, convertGridToIDIndex(row, col + 1));
+                idArray.union(currentElementIndex+offset, convertGridToIDIndex(row, col + 1)+offset);
             }
         } catch (IllegalArgumentException e) {
             // do nothing
@@ -111,33 +109,12 @@ public class Percolation {
     }
 
     public boolean isFull(int row, int col) {
-        int topElementIndex = gridSize * gridSize;
-
         int objectID = this.convertGridToIDIndex(row, col);
         if (!this.isOpen(row, col)) {
             // Unopened sites cannot be full
             return false;
         }
-        if (idArray.find(topElementIndex) == idArray.find(objectID)) {
-            if (row==gridSize){
-                try {
-                    return isFull(row-1, col);
-                } catch (IllegalArgumentException e) {
-
-                }try {
-                    return isFull(row, col-1);
-                } catch (IllegalArgumentException e) {
-
-                }try {
-                    return isFull(row-1, col+1);
-                } catch (IllegalArgumentException e) {
-
-                }
-
-            }
-            return true;
-        }
-        return false;
+        return idArray.find(topElementIndex+offset) == idArray.find(objectID+offset);
     }
 
     // returns the number of open sites
@@ -145,19 +122,18 @@ public class Percolation {
         return this.openSites;
     }
 
+    // REWRITE IS IN ORDER!
     public boolean percolates() {
         // Check if the top & bottom pseudoelement connect
-        return idArray.find(gridSize * gridSize) == idArray.find((gridSize * gridSize) + 1);
+        if (this.openSites>0){
+            return idArray.find(topElementIndex) == idArray.find(bottomElementIndex);
+        }
+        return false;
     }
 
     // test client (optional)
     public static void main(String[] args) {
-        Percolation perc = new Percolation(3);
-        perc.open(1,3);
-        perc.open(2,3);
-        perc.open(3,3);
-        perc.open(3,1);
-        perc.open(2,1);
-        System.out.println(perc.isFull(3,1));
+        Percolation perc = new Percolation(1);
+        System.out.println(perc.percolates());
     }
 }
