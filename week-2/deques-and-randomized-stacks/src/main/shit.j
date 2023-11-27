@@ -5,6 +5,9 @@ import java.util.NoSuchElementException;
 
 public class RandomizedQueue<Item> implements Iterable<Item> {
     private Item[] q;
+
+    private Item[] shuffled = null;
+
     private int i = 0;
     private int capacity = 2;
 
@@ -25,6 +28,8 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
 
     // add the item
     public void enqueue(Item item) {
+        // If shuffled exists, re-create the q list
+        updateArray();
         // Constant time
         if (i == capacity) {
             extendArray();
@@ -40,14 +45,16 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
         if (isEmpty()) {
             throw new NoSuchElementException();
         }
+        // slice array, O(N)
+        if (shuffled == null) {
+            shuffled = shuffleArray();
+            q=null;
+        }
+        Item old = shuffled[i - 1];
 
-        int r = StdRandom.uniformInt(0, i);
-        // get random item at index r
-        Item item = q[r];
-        // take item from back of array and insert it at r to overwrite it
-        q[r] = q[i-1];
-        q[i-1] = null;
         i--;
+
+        shuffled[i] = null;
 
         // decrease size of array
         if (i <= 0.25*capacity){
@@ -55,13 +62,13 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
             Item[] aux = (Item[]) new Object[capacity];
             // Populate array
             for (int j = 0; j < i; j++) {
-                aux[j] = q[j];
+                aux[j] = shuffled[j];
             }
-            q = aux;
+            shuffled = aux;
         }
 
         // Total time usage -> 2*N
-        return item;
+        return old;
     }
 
     // return a random item (but do not remove it)
@@ -70,6 +77,7 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
             throw new NoSuchElementException();
         }
         int r = StdRandom.uniformInt(0, i);
+        updateArray();
         return q[r];
     }
 
@@ -94,6 +102,26 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
         q = copy;
     }
 
+    private Item[] updateArray() {
+        if (shuffled != null) {
+            // check if shrinkage is required
+            if (i <= 0.25*capacity){
+                capacity = (int) (capacity*0.25);
+                q = (Item[]) new Object[capacity];
+                // Populate array
+                for (int j = 0; j < i; j++) {
+                    q[j] = shuffled[j];
+                }
+                shuffled = null;
+            } else {
+                q = shuffled;
+                shuffled = null;
+                capacity = q.length;
+            }
+        }
+        return q;
+    }
+
     // return an independent iterator over items in random order
     public Iterator<Item> iterator() {
         return new ListIterator();
@@ -101,10 +129,11 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
 
     private class ListIterator implements Iterator<Item> {
         private int j = 0;
-        private final Item[] shuffled;
+        private final Item[] slicedArray;
 
         ListIterator() {
-            shuffled = shuffleArray();
+            updateArray();
+            slicedArray = shuffleArray();
         }
 
         public boolean hasNext() {
@@ -118,7 +147,7 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
         public Item next() {
             if (hasNext()) {
                 // constant time
-                return shuffled[j++];
+                return slicedArray[j++];
             } else {
                 throw new NoSuchElementException();
             }
