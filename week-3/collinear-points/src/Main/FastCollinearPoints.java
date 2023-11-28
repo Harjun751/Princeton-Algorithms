@@ -39,7 +39,10 @@ public class FastCollinearPoints {
             }
         }
         Point[] aux = Arrays.copyOf(points, points.length);
-        Merge.sort(aux);
+        // Custom sort
+//        Merge.sort(aux);
+        // Array sort
+        Arrays.sort(aux);
         this.points = aux;
     }
 
@@ -73,8 +76,11 @@ public class FastCollinearPoints {
                 j++;
                 index++;
             }
-            // Sorts slope array
-            Merge.sort(slopeArray);
+            // Sorts slope array using custom sort
+            // Merge.sort(slopeArray);
+
+            // Array sort
+            Arrays.sort(slopeArray);
 
             // Check for samey slopes
             // Create the line segment for those slopes
@@ -122,45 +128,49 @@ public class FastCollinearPoints {
         return segmentsStore.clone();
     }
 
-    private static class Merge {
-        private static <T extends Comparable<T>> void sort(T[] arr) {
-            T[] aux = (T[]) new Comparable[arr.length];
-            sort(arr, aux, 0, arr.length - 1);
-        }
+    //////////////////////////////////////
+    // CUSTOM MERGE SORT IMPLEMENTATION //
+    //////////////////////////////////////
 
-        private static <T extends Comparable<T>> void merge(T[] arr, T[] aux, int lo, int mid, int hi) {
-            // copy array
-            if (hi + 1 - lo >= 0) System.arraycopy(arr, lo, aux, lo, hi + 1 - lo);
-
-            int j = mid + 1;
-            int i = lo;
-            for (int k = lo; k <= hi; k++) {
-                if (i > mid) {
-                    arr[k] = aux[j++];
-                } else if (j > hi) {
-                    arr[k] = aux[i++];
-                } else if (aux[j].compareTo(aux[i]) <= -1) {
-                    // if auxj is lower than aux i
-                    arr[k] = aux[j++];
-                } else {
-                    arr[k] = aux[i++];
-                }
-            }
-        }
-
-        private static <T extends Comparable<T>> void sort(T[] arr, T[] aux, int lo, int hi) {
-            if (lo >= hi) {
-                return;
-            }
-
-            int mid = (lo + hi) / 2;
-
-            sort(arr, aux, lo, mid);
-            sort(arr, aux, mid + 1, hi);
-
-            merge(arr, aux, lo, mid, hi);
-        }
-    }
+//    private static class Merge {
+//        private static <T extends Comparable<T>> void sort(T[] arr) {
+//            T[] aux = (T[]) new Comparable[arr.length];
+//            sort(arr, aux, 0, arr.length - 1);
+//        }
+//
+//        private static <T extends Comparable<T>> void merge(T[] arr, T[] aux, int lo, int mid, int hi) {
+//            // copy array
+//            if (hi + 1 - lo >= 0) System.arraycopy(arr, lo, aux, lo, hi + 1 - lo);
+//
+//            int j = mid + 1;
+//            int i = lo;
+//            for (int k = lo; k <= hi; k++) {
+//                if (i > mid) {
+//                    arr[k] = aux[j++];
+//                } else if (j > hi) {
+//                    arr[k] = aux[i++];
+//                } else if (aux[j].compareTo(aux[i]) <= -1) {
+//                    // if auxj is lower than aux i
+//                    arr[k] = aux[j++];
+//                } else {
+//                    arr[k] = aux[i++];
+//                }
+//            }
+//        }
+//
+//        private static <T extends Comparable<T>> void sort(T[] arr, T[] aux, int lo, int hi) {
+//            if (lo >= hi) {
+//                return;
+//            }
+//
+//            int mid = (lo + hi) / 2;
+//
+//            sort(arr, aux, lo, mid);
+//            sort(arr, aux, mid + 1, hi);
+//
+//            merge(arr, aux, lo, mid, hi);
+//        }
+//    }
 
     public static void main(String[] args) {
     }
