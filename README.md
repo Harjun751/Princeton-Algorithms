@@ -7,7 +7,7 @@ My solutions and tests for the princeton algorithms course available on coursera
 | ----------- | ----------- |
 | Week 1 | 100 |
 | Week 2 | 100 |
-| Week 3 | 95 |
+| Week 3 | 100 |
 | Week 4 | 100 |
 | Week 5 | 100 |
 
